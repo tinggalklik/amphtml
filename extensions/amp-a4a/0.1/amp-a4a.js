@@ -262,7 +262,11 @@ export class AmpA4A extends AMP.BaseElement {
         throw cancellation();
       }
     };
+    // Start the signing server public key fetching process.
+    const keyFetchPromise = this.getPublicKeySet_();
+    // TODO(levitzky) get rid of this.
     let creativePartsPlaceholder;
+
     // Return value from this chain: True iff rendering was "successful"
     // (i.e., shouldn't try to render later via iframe); false iff should
     // try to render later in iframe.
@@ -320,20 +324,17 @@ export class AmpA4A extends AMP.BaseElement {
         return responseParts && this.extractCreativeAndSignature(
                 responseParts.bytes, responseParts.headers);
       })
-      // This block fetches the signing server public keys.
-      .then(creativeParts => {
-        checkStillCurrent(promiseId);
-        creativePartsPlaceholder = creativeParts;
-        return creativeParts && this.getPublicKeySet_(true);
-      })
       // This block returns the ad creative if it exists and validates as AMP;
       // null otherwise.
       /** @return {!Promise<?string>} */
-      .then(() => {
+      .then(creativeParts => {
         checkStillCurrent(promiseId);
-        return publicKeyInfos && this.validateAdResponse_(
-            creativePartsPlaceholder.creative,
-            creativePartsPlaceholder.signature);
+        return keyFetchPromise.then(() => {
+          checkStillCurrent(promiseId);
+          return creativeParts && this.validateAdResponse_(
+              creativeParts.creative,
+              creativeParts.signature);
+        });
       })
       // This block returns true iff the creative was rendered in the shadow
       // DOM.
