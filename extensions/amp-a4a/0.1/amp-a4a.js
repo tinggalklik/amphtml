@@ -551,10 +551,7 @@ export class AmpA4A extends AMP.BaseElement {
    * @Return {!Promise<?FetchResponse>}
    */
   getPublicKeyFromServer_(url) {
-    return fetch(url, {
-      mode: 'cors',
-      method: 'GET',
-    });
+    return xhrFor(this.win).fetch(url, {mode: 'cors', method: 'GET'});
   }
 
   /**
