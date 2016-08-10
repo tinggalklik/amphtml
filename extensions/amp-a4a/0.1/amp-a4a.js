@@ -264,8 +264,6 @@ export class AmpA4A extends AMP.BaseElement {
     };
     // Start the signing server public key fetching process.
     const keyFetchPromise = this.getPublicKeySet_();
-    // TODO(levitzky) get rid of this.
-    let creativePartsPlaceholder;
 
     // Return value from this chain: True iff rendering was "successful"
     // (i.e., shouldn't try to render later via iframe); false iff should
@@ -574,6 +572,8 @@ export class AmpA4A extends AMP.BaseElement {
         response.json().then(keysContainer => {
           keysContainer.keys.map(key => keys.push(key));
           setPublicKeys(keys);
+          resolve();
+        }).catch(() => {
           resolve();
         });
       }).catch(() => {
