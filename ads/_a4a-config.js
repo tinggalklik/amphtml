@@ -41,3 +41,14 @@ export const a4aRegistry = {
   'adsense': adsenseIsA4AEnabled,
   'doubleclick': doubleclickIsA4AEnabled,
 };
+
+/**
+ * A list of objects, each containing the url to a signing server and a refresh
+ * rate for that server's public key in seconds.
+ *
+ * @const {!Array<{id: !string, url: !string, shelfLife: !number>}
+ */
+export const signingServer = {
+  'id': 'ampproject',
+  'url': 'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+};

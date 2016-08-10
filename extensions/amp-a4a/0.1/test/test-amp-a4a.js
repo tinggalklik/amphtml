@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-import {
-  AmpA4A,
-  setPublicKeys,
-} from '../amp-a4a';
+import {AmpA4A} from '../amp-a4a';
 import {base64UrlDecodeToBytes} from '../../../../src/utils/base64';
 import {Xhr} from '../../../../src/service/xhr-impl';
 import {Viewer} from '../../../../src/service/viewer-impl';
@@ -80,14 +77,16 @@ describe('amp-a4a', () => {
   let sandbox;
   let xhrMock;
   let viewerForMock;
+  let getPublicKeyFromServerMock;
   let mockResponse;
-
-  setPublicKeys([JSON.parse(validCSSAmp.publicKey)]);
+  let mockPublicKeyResponse;
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
     xhrMock = sandbox.stub(Xhr.prototype, 'fetch');
     viewerForMock = sandbox.stub(Viewer.prototype, 'whenFirstVisible');
+    getPublicKeyFromServerMock = sandbox.stub(AmpA4A.prototype,
+      'getPublicKeyFromServer_');
     mockResponse = {
       arrayBuffer: function() {
         return Promise.resolve(stringToArrayBuffer(validCSSAmp.reserialized));
@@ -100,6 +99,11 @@ describe('amp-a4a', () => {
           };
           return headerValues[name];
         },
+      },
+    };
+    mockPublicKeyResponse = {
+      json: () => {
+        return Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]});
       },
     };
   });
@@ -120,6 +124,8 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
+      getPublicKeyFromServerMock.returns(
+        Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -164,6 +170,8 @@ describe('amp-a4a', () => {
     it('should run end-to-end w/o shadow DOM support', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
       xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
+      getPublicKeyFromServerMock.returns(
+        Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -214,6 +222,8 @@ describe('amp-a4a', () => {
     it('#onLayoutMeasure #layoutCallback not valid AMP', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
       xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
+      getPublicKeyFromServerMock.returns(
+        Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -253,6 +263,8 @@ describe('amp-a4a', () => {
     it('should not leak full response to rendered dom', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
       xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
+      getPublicKeyFromServerMock.returns(
+        Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -575,6 +587,8 @@ describe('amp-a4a', () => {
           const a4a = new MockA4AImpl(a4aElement);
           viewerForMock.returns(Promise.resolve());
           xhrMock.returns(Promise.resolve(mockResponse));
+          getPublicKeyFromServerMock.returns(
+            Promise.resolve(mockPublicKeyResponse));
           a4a.onLayoutMeasure();
           expect(a4a.adPromise_).to.not.be.null;
           return a4a.adPromise_.then(() => {
@@ -675,3 +689,5 @@ describe('amp-a4a', () => {
   // Other cases to handle for body reformatting:
   //   - All
 });
+
+
