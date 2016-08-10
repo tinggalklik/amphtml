@@ -49,6 +49,7 @@ export const a4aRegistry = {
   // build-system/dep-check-config.js in the "filesMatching: 'ads/**/*.js' rule.
 };
 
+<<<<<<< 056e94035e73f721208e6fcd0a83d99d4834c9df
 // Note: the 'fake' ad network implementation is only for local testing.
 // Normally, ad networks should add their *IsA4AEnabled callback directly
 // to the a4aRegistry, above.  Ad network implementations should NOT use
@@ -57,3 +58,15 @@ export const a4aRegistry = {
 if (getMode().localDev || getMode().test) {
   a4aRegistry['fake'] = fakeIsA4AEnabled;
 }
+=======
+/**
+ * A list of objects, each containing the url to a signing server and a refresh
+ * rate for that server's public key in seconds.
+ *
+ * @const {!Array<{id: !string, url: !string, shelfLife: !number>}
+ */
+export const signingServer = {
+  'id': 'ampproject',
+  'url': 'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+};
+>>>>>>> Reworked getPublicKetSet_.

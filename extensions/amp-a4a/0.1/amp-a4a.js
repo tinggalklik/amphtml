@@ -17,9 +17,11 @@
 import {
   allowRenderOutsideViewport,
   decrementLoadingAds,
-  incrementLoadingAds} from '../../amp-ad/0.1/amp-ad-3p-impl';
+  incrementLoadingAds,
+} from '../../amp-ad/0.1/amp-ad-3p-impl';
 import {AmpAdApiHandler} from '../../amp-ad/0.1/amp-ad-api-handler';
 import {adPreconnect} from '../../../ads/_config';
+import {signingServer} from '../../../ads/_a4a-config';
 import {removeElement, removeChildren} from '../../../src/dom';
 import {cancellation} from '../../../src/error';
 import {createShadowEmbedRoot} from '../../../src/shadow-embed';
@@ -36,34 +38,12 @@ import {
   verifySignatureIsAvailable,
 } from './crypto-verifier';
 
-
-// This is the public key currently used by our test signing server.
-// It will be replaced with code which queries the server to get the
-// current set of active keys. (See further comments below.)
-const modulus =
-      'z43rjaJ9PLk1FHMEL31_ILXGtUTN03rxJ9amD9y3BRDpbTA-GkUKiQM07xAd8OXP' +
-      'UZRqcjvXQfc7b1RCEtwrcfx9oBRdF78QMA4tLLCqSHP0tSuqYF0fA7-GyTFWDcYz' +
-      'ey90jRFNNWxjzKrvSazacE0TvJ8S_AVP4EV67VdbByCC1tpBzLhhy7RFHp2cXGTp' +
-      'WYUqZUAVUdJoeBuCho_zQz2au7c6sDaLiF-uYL9Td9MrZ6tSLo3MeMIZia4WgWqj' +
-      'TDICR0h-zlbHUd0K9CoXbGTt5nvkebXHmbKd99ma6zRYVlYNJTuSqsRCBNYtCTFV' +
-      'HIZeBlkjHKsQ46HTZPexZw';
-
-const pubExp = 'AQAB';
-
 /**
  * The current set of public keys.
  *
  * @type {Array<!Promise<!PublicKeyInfoDef>>}
  */
-// TODO(bobcassels): When the signing server is finished, get the public keys
-// from there. For now, hard-wire the current signer public key.
-let publicKeyInfos = [importPublicKey({
-  kty: 'RSA',
-  'n': modulus,
-  'e': pubExp,
-  alg: 'RS256',
-  ext: true,
-})];
+let publicKeyInfos = [];
 
 // If we're in local dev mode then we may be talking to a dev validation
 // instance as well.  Dev validators use different keys than production ones
@@ -130,12 +110,6 @@ const AMP_BODY_STRING = 'amp-ad-body';
 /** @typedef {{creative: ArrayBuffer, signature: ?Uint8Array}} */
 let AdResponseDef;
 
-/** @typedef {{cssUtf16CharOffsets: Array<number>,
-               cssReplacementRanges: Array<number>,
-               bodyUtf16CharOffsets: !Array<number>,
-               bodyAttributes: ?string,
-               customElementExtensions: Array<string>,
-               customStylesheets: Array<string>}} */
 let CreativeMetaDataDef;
 
 export class AmpA4A extends AMP.BaseElement {
@@ -288,6 +262,7 @@ export class AmpA4A extends AMP.BaseElement {
         throw cancellation();
       }
     };
+    let creativePartsPlaceholder;
     // Return value from this chain: True iff rendering was "successful"
     // (i.e., shouldn't try to render later via iframe); false iff should
     // try to render later in iframe.
@@ -345,13 +320,20 @@ export class AmpA4A extends AMP.BaseElement {
         return responseParts && this.extractCreativeAndSignature(
                 responseParts.bytes, responseParts.headers);
       })
+      // This block fetches the signing server public keys.
+      .then(creativeParts => {
+        checkStillCurrent(promiseId);
+        creativePartsPlaceholder = creativeParts;
+        return creativeParts && this.getPublicKeySet_(true);
+      })
       // This block returns the ad creative if it exists and validates as AMP;
       // null otherwise.
       /** @return {!Promise<?string>} */
-      .then(creativeParts => {
+      .then(() => {
         checkStillCurrent(promiseId);
-        return creativeParts && this.validateAdResponse_(
-            creativeParts.creative, creativeParts.signature);
+        return publicKeyInfos && this.validateAdResponse_(
+            creativePartsPlaceholder.creative,
+            creativePartsPlaceholder.signature);
       })
       // This block returns true iff the creative was rendered in the shadow
       // DOM.
@@ -362,6 +344,10 @@ export class AmpA4A extends AMP.BaseElement {
         // on precisely the same creative that was validated
         // via #validateAdResponse_.  See GitHub issue
         // https://github.com/ampproject/amphtml/issues/4187
+
+        // TODO(levitzky) If creative comes back null, we should consider re-
+        // fetching the signing server public keys and try the verification
+        // step again.
         return creative && this.maybeRenderAmpAd_(creative);
       })
       .catch(error => this.promiseErrorHandler_(error));
@@ -550,11 +536,49 @@ export class AmpA4A extends AMP.BaseElement {
       // indicates that the tests are too weak or aren't reporting
       // correctly.  Check out and fix the tests.
       return verifySignature(
-          new Uint8Array(creative), signature, publicKeyInfos).then(isValid => {
-            return isValid ? creative : null;
-          });
+          new Uint8Array(creative),
+          signature,
+          publicKeyInfos
+      ).then(isValid => {
+        return isValid ? creative : null;
+      });
     }
     return Promise.reject('Public key validation of A4A ads not available');
+  }
+
+  /**
+   * Retrieves a public key from the signing server at the given URL.
+   * @param {!string} url The URL of the signing server.
+   * @Return {!Promise<?FetchResponse>}
+   */
+  getPublicKeyFromServer_(url) {
+    return fetch(url, {
+      mode: 'cors',
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Retrieves all public keys, as specified in _a4a-config.js.
+   * @return {!Promise<!Array<!PublicKeyInfoDef>>} A promise of an array of
+   *   public keys.
+   * @private
+   */
+  getPublicKeySet_() {
+    return new Promise(resolve => {
+      // Container for all fetched keys, in raw JSON.
+      const keys = [];
+      // Get signing server key from remote server.
+      this.getPublicKeyFromServer_(signingServer.url).then(response => {
+        response.json().then(keysContainer => {
+          keysContainer.keys.map(key => keys.push(key));
+          setPublicKeys(keys);
+          resolve();
+        });
+      }).catch(() => {
+        resolve();
+      });
+    }); // End return
   }
 
   /**
@@ -783,6 +807,12 @@ export class AmpA4A extends AMP.BaseElement {
    * @returns {string}  Body of AMP creative, surrounded by {@code
    *     <amp-ad-body>} tags, and suitable for injection into Shadow DOM.
    * @private
+   *
+   * @param {!CreativeMetaDataDef} metaData Metadata object extracted from the
+   *    reserialized creative.
+   * @returns {string}  Body of AMP creative, surrounded by {@code
+   *     <amp-ad-body>} tags, and suitable for injection into Shadow DOM.
+   * @private
    */
   formatBody_(creative, metaData) {
     return creative.substring(metaData.bodyUtf16CharOffsets[0],
@@ -839,3 +869,5 @@ export class AmpA4A extends AMP.BaseElement {
     });
   }
 }
+
+
