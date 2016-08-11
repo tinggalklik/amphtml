@@ -59,6 +59,7 @@ if (getMode().localDev) {
       'fZxvGP3QObEQENHAlyPe54Z0vfCYhiXLWhQuOyaKkVIf3xn7t6Pu7PbreCN9f-Ca' +
       '8noVVKNUZCdlUqiQjXZZfu5pi8ZCto_HEN26hE3nqoEFyBWQwMvgJMhpkS2NjIX2' +
       'sQuM5KangAkjJRe-Ej6aaQ';
+  const pubExp = 'AQAB';
   publicKeyInfos.push(importPublicKey({
     kty: 'RSA',
     'n': devModulus,
