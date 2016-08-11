@@ -546,36 +546,24 @@ export class AmpA4A extends AMP.BaseElement {
   }
 
   /**
-   * Retrieves a public key from the signing server at the given URL.
-   * @param {!string} url The URL of the signing server.
-   * @Return {!Promise<?FetchResponse>}
-   */
-  getPublicKeyFromServer_(url) {
-    return xhrFor(this.win).fetch(url, {mode: 'cors', method: 'GET'});
-  }
-
-  /**
    * Retrieves all public keys, as specified in _a4a-config.js.
    * @return {!Promise<!Array<!PublicKeyInfoDef>>} A promise of an array of
    *   public keys.
    * @private
    */
   getPublicKeySet_() {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       // Container for all fetched keys, in raw JSON.
       const keys = [];
       // Get signing server key from remote server.
-      this.getPublicKeyFromServer_(signingServer.url).then(response => {
-        response.json().then(keysContainer => {
-          keysContainer.keys.map(key => keys.push(key));
-          setPublicKeys(keys);
-          resolve();
-        }).catch(() => {
-          resolve();
-        });
-      }).catch(() => {
-        resolve();
-      });
+      xhrFor(this.win).fetch(signingServer.url, {mode: 'cors', method: 'GET'})
+          .then(response => {
+            response.json().then(keysContainer => {
+              keysContainer.keys.map(key => keys.push(key));
+              setPublicKeys(keys);
+              resolve();
+            }).catch(() => reject());
+          }).catch(() => reject());
     }); // End return
   }
 
