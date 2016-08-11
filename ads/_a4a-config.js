@@ -59,12 +59,11 @@ if (getMode().localDev || getMode().test) {
 }
 
 /**
- * A list of objects, each containing the url to a signing server and a refresh
- * rate for that server's public key in seconds.
- *
+ * A record containing a human-readable name of a signing server and its
+ * corresponding url.
  * @type {{id: string, url: string}}
  */
 export const signingServer = {
-  'id': 'ampproject',
+  'name': 'ampproject',
   'url': 'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
 };
