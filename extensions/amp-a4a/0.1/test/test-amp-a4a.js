@@ -77,7 +77,6 @@ describe('amp-a4a', () => {
   let sandbox;
   let xhrMock;
   let viewerForMock;
-  let getPublicKeyFromServerMock;
   let mockResponse;
   let mockPublicKeyResponse;
 
@@ -85,8 +84,10 @@ describe('amp-a4a', () => {
     sandbox = sinon.sandbox.create();
     xhrMock = sandbox.stub(Xhr.prototype, 'fetch');
     viewerForMock = sandbox.stub(Viewer.prototype, 'whenFirstVisible');
-    getPublicKeyFromServerMock = sandbox.stub(AmpA4A.prototype,
-      'getPublicKeyFromServer_');
+    xhrMock.withArgs(
+        'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+        {mode: 'cors', method: 'GET'})
+    .returns(Promise.resolve(mockPublicKeyResponse));
     mockResponse = {
       arrayBuffer: function() {
         return Promise.resolve(stringToArrayBuffer(validCSSAmp.reserialized));
@@ -100,6 +101,7 @@ describe('amp-a4a', () => {
           return headerValues[name];
         },
       },
+      catch: callback => callback(),
     };
     mockPublicKeyResponse = {
       json: () => {
@@ -124,8 +126,10 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
-      getPublicKeyFromServerMock.returns(
-        Promise.resolve(mockPublicKeyResponse));
+      xhrMock.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -149,8 +153,8 @@ describe('amp-a4a', () => {
           a4a.vsync_.runScheduledTasks_();
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledOnce,
-              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
+          expect(xhrMock.calledTwice,
+              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
           expect(extractCreativeAndSignatureSpy.calledOnce,
               'extractCreativeAndSignatureSpy called exactly once').to.be.true;
           expect(validateAdResponseSpy.calledOnce,
@@ -169,9 +173,16 @@ describe('amp-a4a', () => {
     });
     it('should run end-to-end w/o shadow DOM support', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
-      xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
-      getPublicKeyFromServerMock.returns(
-        Promise.resolve(mockPublicKeyResponse));
+      xhrMock.withArgs('https://test.location.org/ad/012345?args', {
+        mode: 'cors',
+        method: 'GET',
+        credentials: 'include',
+        requireAmpResponseSourceOrigin: true,
+      }).onFirstCall().returns(Promise.resolve(mockResponse));
+      xhrMock.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -190,8 +201,8 @@ describe('amp-a4a', () => {
           a4a.vsync_.runScheduledTasks_();
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledOnce,
-              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
+          expect(xhrMock.calledTwice,
+              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
           expect(a4aElement.shadowRoot, 'Shadow root is not set').to.be.null;
           expect(a4aElement.children.length, 'has child').to.equal(1);
           expect(a4aElement.firstChild.src, 'verify iframe src w/ origin').to
@@ -221,9 +232,16 @@ describe('amp-a4a', () => {
     });
     it('#onLayoutMeasure #layoutCallback not valid AMP', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
-      xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
-      getPublicKeyFromServerMock.returns(
-        Promise.resolve(mockPublicKeyResponse));
+      xhrMock.withArgs('https://test.location.org/ad/012345?args', {
+        mode: 'cors',
+        method: 'GET',
+        credentials: 'include',
+        requireAmpResponseSourceOrigin: true,
+      }).onFirstCall().returns(Promise.resolve(mockResponse));
+      xhrMock.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -241,8 +259,8 @@ describe('amp-a4a', () => {
         return a4a.adPromise_.then(() => {
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledOnce,
-              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
+          expect(xhrMock.calledTwice,
+              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
           expect(a4aElement.shadowRoot, 'Shadow root is not set').to.be.null;
           expect(a4aElement.children.length, 'has no children').to.equal(0);
           expect(a4a.rendered_).to.be.false;
@@ -262,9 +280,16 @@ describe('amp-a4a', () => {
     });
     it('should not leak full response to rendered dom', () => {
       viewerForMock.onFirstCall().returns(Promise.resolve());
-      xhrMock.onFirstCall().returns(Promise.resolve(mockResponse));
-      getPublicKeyFromServerMock.returns(
-        Promise.resolve(mockPublicKeyResponse));
+      xhrMock.withArgs('https://test.location.org/ad/012345?args', {
+        mode: 'cors',
+        method: 'GET',
+        credentials: 'include',
+        requireAmpResponseSourceOrigin: true,
+      }).onFirstCall().returns(Promise.resolve(mockResponse));
+      xhrMock.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve(mockPublicKeyResponse));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -586,9 +611,16 @@ describe('amp-a4a', () => {
           a4aElement.setAttribute('type', 'adsense');
           const a4a = new MockA4AImpl(a4aElement);
           viewerForMock.returns(Promise.resolve());
-          xhrMock.returns(Promise.resolve(mockResponse));
-          getPublicKeyFromServerMock.returns(
-            Promise.resolve(mockPublicKeyResponse));
+          xhrMock.withArgs('https://test.location.org/ad/012345?args', {
+            mode: 'cors',
+            method: 'GET',
+            credentials: 'include',
+            requireAmpResponseSourceOrigin: true,
+          }).returns(Promise.resolve(mockResponse));
+          xhrMock.withArgs(
+              'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+              {mode: 'cors', method: 'GET'})
+          .returns(Promise.resolve(mockPublicKeyResponse));
           a4a.onLayoutMeasure();
           expect(a4a.adPromise_).to.not.be.null;
           return a4a.adPromise_.then(() => {
