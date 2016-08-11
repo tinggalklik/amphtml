@@ -21,7 +21,7 @@ import {
 } from '../../amp-ad/0.1/amp-ad-3p-impl';
 import {AmpAdApiHandler} from '../../amp-ad/0.1/amp-ad-api-handler';
 import {adPreconnect} from '../../../ads/_config';
-import {signingServer} from '../../../ads/_a4a-config';
+import {signingServerURLs} from '../../../ads/_a4a-config';
 import {removeElement, removeChildren} from '../../../src/dom';
 import {cancellation} from '../../../src/error';
 import {createShadowEmbedRoot} from '../../../src/shadow-embed';
@@ -240,6 +240,7 @@ export class AmpA4A extends AMP.BaseElement {
       }
     };
     // Start the signing server public key fetching process.
+    // TODO(levitzky) Consider starting this even earlier.
     const keyFetchPromise = this.getPublicKeySet_();
 
     // Return value from this chain: True iff rendering was "successful"
@@ -304,9 +305,14 @@ export class AmpA4A extends AMP.BaseElement {
       /** @return {!Promise<?string>} */
       .then(creativeParts => {
         checkStillCurrent(promiseId);
+        if (!creativeParts ||
+            !creativeParts.creative ||
+            !creativeParts.signature) {
+          return Promise.resolve(false);
+        }
         return keyFetchPromise.then(() => {
           checkStillCurrent(promiseId);
-          return creativeParts && this.validateAdResponse_(
+          return this.validateAdResponse_(
               creativeParts.creative,
               creativeParts.signature);
         });
@@ -523,18 +529,58 @@ export class AmpA4A extends AMP.BaseElement {
   }
 
   /**
+   * To be overridden by network specific implementation indicating which
+   * signing service(s) is to be used.
+   * @return {!Array<string>} A list of signing services.
+   * @private
+   */
+  getSigningServiceNames_() {
+    // TODO(levitzky) Add dev key name once it goes live.
+    return getMode().localDev ? ['ampproject'] : ['ampproject'];
+  }
+
+  /**
    * Retrieves all public keys, as specified in _a4a-config.js.
    * @return {!Promise<!Array<!PublicKeyInfoDef>>} A promise of an array of
    *   public keys.
    * @private
    */
   getPublicKeySet_() {
-    return xhrFor(this.win).fetch(
-        signingServer.url, {mode: 'cors', method: 'GET'})
-        .then(response => response.json())
-        .then(keysContainer => {
-          setPublicKeys(keysContainer.keys);
-        });
+    return new Promise(resolve => {
+      const serviceNames = this.getSigningServiceNames_();
+      const keys = [];
+      let keysFetched = 0;
+
+      // This function is called whenever an xhr returns, or if no xhr can be
+      // made, such as in the case of an invalid signing service name. When
+      // called the function will set the keys retrieved and resolve the
+      // promise.
+      const tryResolving = () => {
+        if (++keysFetched == serviceNames.length) {
+          setPublicKeys(keys);
+          resolve();
+        }
+      };
+
+      serviceNames.map(serviceName => {
+        if (signingServerURLs[serviceName]) {
+          xhrFor(this.win).fetchJson(signingServerURLs[serviceName],
+              {mode: 'cors', method: 'GET'})
+          .then(keysContainer => {
+            if (!keysContainer || !keysContainer.keys) {
+              throw new Error('Invalid response from signing server.');
+            }
+            keys.push.apply(keys, keysContainer.keys);
+            tryResolving();
+          });
+        }
+        else {
+          // TODO(levitzky) Throw an error if the service name doesn't have a
+          // corresponding URL?
+          tryResolving();
+        }
+      });
+    });
   }
 
   /**

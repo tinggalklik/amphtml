@@ -76,18 +76,19 @@ function createAdTestingIframePromise() {
 describe('amp-a4a', () => {
   let sandbox;
   let xhrMock;
+  let xhrMockJson;
   let viewerForMock;
   let mockResponse;
-  let mockPublicKeyResponse;
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
     xhrMock = sandbox.stub(Xhr.prototype, 'fetch');
+    xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
     viewerForMock = sandbox.stub(Viewer.prototype, 'whenFirstVisible');
-    xhrMock.withArgs(
+    xhrMockJson.withArgs(
         'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
         {mode: 'cors', method: 'GET'})
-    .returns(Promise.resolve(mockPublicKeyResponse));
+    .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
     mockResponse = {
       arrayBuffer: function() {
         return Promise.resolve(stringToArrayBuffer(validCSSAmp.reserialized));
@@ -102,11 +103,6 @@ describe('amp-a4a', () => {
         },
       },
       catch: callback => callback(),
-    };
-    mockPublicKeyResponse = {
-      json: () => {
-        return Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]});
-      },
     };
   });
   afterEach(() => {
@@ -126,10 +122,10 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
-      xhrMock.withArgs(
+      xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve(mockPublicKeyResponse));
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -153,8 +149,8 @@ describe('amp-a4a', () => {
           a4a.vsync_.runScheduledTasks_();
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledTwice,
-              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
+          expect(xhrMock.calledOnce,
+              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
           expect(extractCreativeAndSignatureSpy.calledOnce,
               'extractCreativeAndSignatureSpy called exactly once').to.be.true;
           expect(validateAdResponseSpy.calledOnce,
@@ -179,10 +175,10 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
-      xhrMock.withArgs(
+      xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve(mockPublicKeyResponse));
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -201,8 +197,8 @@ describe('amp-a4a', () => {
           a4a.vsync_.runScheduledTasks_();
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledTwice,
-              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
+          expect(xhrMock.calledOnce,
+              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
           expect(a4aElement.shadowRoot, 'Shadow root is not set').to.be.null;
           expect(a4aElement.children.length, 'has child').to.equal(1);
           expect(a4aElement.firstChild.src, 'verify iframe src w/ origin').to
@@ -238,10 +234,10 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
-      xhrMock.withArgs(
+      xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve(mockPublicKeyResponse));
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -259,8 +255,8 @@ describe('amp-a4a', () => {
         return a4a.adPromise_.then(() => {
           expect(getAdUrlSpy.calledOnce, 'getAdUrl called exactly once')
               .to.be.true;
-          expect(xhrMock.calledTwice,
-              'xhr.fetchTextAndHeaders called exactly twice').to.be.true;
+          expect(xhrMock.calledOnce,
+              'xhr.fetchTextAndHeaders called exactly once').to.be.true;
           expect(a4aElement.shadowRoot, 'Shadow root is not set').to.be.null;
           expect(a4aElement.children.length, 'has no children').to.equal(0);
           expect(a4a.rendered_).to.be.false;
@@ -286,10 +282,10 @@ describe('amp-a4a', () => {
         credentials: 'include',
         requireAmpResponseSourceOrigin: true,
       }).onFirstCall().returns(Promise.resolve(mockResponse));
-      xhrMock.withArgs(
+      xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve(mockPublicKeyResponse));
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
       return createAdTestingIframePromise().then(fixture => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
@@ -617,10 +613,11 @@ describe('amp-a4a', () => {
             credentials: 'include',
             requireAmpResponseSourceOrigin: true,
           }).returns(Promise.resolve(mockResponse));
-          xhrMock.withArgs(
+          xhrMockJson.withArgs(
               'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
               {mode: 'cors', method: 'GET'})
-          .returns(Promise.resolve(mockPublicKeyResponse));
+          .returns(
+              Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
           a4a.onLayoutMeasure();
           expect(a4a.adPromise_).to.not.be.null;
           return a4a.adPromise_.then(() => {

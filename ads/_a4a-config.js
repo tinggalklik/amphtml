@@ -59,11 +59,10 @@ if (getMode().localDev || getMode().test) {
 }
 
 /**
- * A record containing a human-readable name of a signing server and its
- * corresponding url.
- * @type {{id: string, url: string}}
+ * An object mapping signing server names to their corresponding URLs.
+ * @type {!Object<string, string>}
  */
-export const signingServer = {
-  'name': 'ampproject',
-  'url': 'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+export const signingServerURLs = {
+  'ampproject': 'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+  // TODO(levitzky) Add dev key path once it is live.
 };
