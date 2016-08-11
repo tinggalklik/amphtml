@@ -553,19 +553,12 @@ export class AmpA4A extends AMP.BaseElement {
    * @private
    */
   getPublicKeySet_() {
-    return new Promise((resolve, reject) => {
-      // Container for all fetched keys, in raw JSON.
-      const keys = [];
-      // Get signing server key from remote server.
-      xhrFor(this.win).fetch(signingServer.url, {mode: 'cors', method: 'GET'})
-          .then(response => {
-            response.json().then(keysContainer => {
-              keysContainer.keys.map(key => keys.push(key));
-              setPublicKeys(keys);
-              resolve();
-            }).catch(() => reject());
-          }).catch(() => reject());
-    }); // End return
+    return xhrFor(this.win).fetch(
+        signingServer.url, {mode: 'cors', method: 'GET'})
+        .then(response => response.json())
+        .then(keysContainer => {
+          setPublicKeys(keysContainer.keys);
+        });
   }
 
   /**

@@ -62,7 +62,7 @@ if (getMode().localDev || getMode().test) {
  * A list of objects, each containing the url to a signing server and a refresh
  * rate for that server's public key in seconds.
  *
- * @const {!Array<{id: !string, url: !string, shelfLife: !number>}
+ * @type {{id: string, url: string}}
  */
 export const signingServer = {
   'id': 'ampproject',
