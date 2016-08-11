@@ -575,9 +575,7 @@ export class AmpA4A extends AMP.BaseElement {
           });
         }
         else {
-          // TODO(levitzky) Throw an error if the service name doesn't have a
-          // corresponding URL?
-          tryResolving();
+          throw new Error('Given signing service does not exist.');
         }
       });
     });
