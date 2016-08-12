@@ -153,8 +153,8 @@ describe('amp-a4a', () => {
               'xhr.fetchTextAndHeaders called exactly once').to.be.true;
           expect(extractCreativeAndSignatureSpy.calledOnce,
               'extractCreativeAndSignatureSpy called exactly once').to.be.true;
-          expect(validateAdResponseSpy.calledOnce,
-              'validateAdResponse_ called exactly once').to.be.true;
+          expect(validateAdResponseSpy.calledTwice,
+              'validateAdResponse_ called exactly twice').to.be.true;
           expect(maybeRenderAmpAdSpy.calledOnce,
               'maybeRenderAmpAd_ called exactly once').to.be.true;
           expect(a4aElement.shadowRoot, 'Shadow root is set').to.not.be.null;

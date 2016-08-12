@@ -265,7 +265,7 @@ export class AmpA4A extends AMP.BaseElement {
     };
     // Start the signing server public key fetching process.
     // TODO(levitzky) Consider starting this even earlier.
-    const keyFetchPromise = this.getPublicKeySet_();
+    const keyFetchPromises = this.getPublicKeySet_();
 
     // Return value from this chain: True iff rendering was "successful"
     // (i.e., shouldn't try to render later via iframe); false iff should
@@ -334,11 +334,43 @@ export class AmpA4A extends AMP.BaseElement {
             !creativeParts.signature) {
           return Promise.resolve(false);
         }
-        return keyFetchPromise.then(() => {
-          checkStillCurrent(promiseId);
-          return this.validateAdResponse_(
-              creativeParts.creative,
-              creativeParts.signature);
+
+        // This promise will resolve to the creative if any one of the fetched
+        // or hardcoded keys validates the given creative against its
+        // signature, or null otherwise.
+        return new Promise(resolve => {
+          // Try publicKeyInfos in case we are in dev mode.
+          // NOTE: Temporary until dev signing service is live.
+          if (publicKeyInfos) {
+            keyFetchPromises.push(Promise.resolve(publicKeyInfos));
+          }
+
+          // When this value is the same as the number of promises to try, we
+          // know that we have checked each promise, and so can resolve.
+          let promisesTried = 0;
+
+          // If the given creative is valid, resolve with it. Otherwise, check
+          // if there are no more promises to try, and if so, resolve to null.
+          const tryResolving = creative => {
+            if (creative) {
+              resolve(creative);
+            }
+            if (++promisesTried == keyFetchPromises.length) {
+              resolve(null);
+            }
+          };
+
+          // For each fetched key do:
+          keyFetchPromises.map(keyFetchPromise => {
+            keyFetchPromise.then(fetchedKeyInfos => {
+              checkStillCurrent(promiseId);
+              this.validateAdResponse_(
+                  creativeParts.creative,
+                  creativeParts.signature,
+                  fetchedKeyInfos)
+                  .then(creative => tryResolving(creative));
+            });
+          });
         });
       })
       // This block returns true iff the creative was rendered in the shadow
@@ -524,11 +556,13 @@ export class AmpA4A extends AMP.BaseElement {
    * @param {!ArrayBuffer} creative  Bytes of the entire signed creative.
    * @param {?ArrayBuffer} signature  Bytes for creative signature (decoded from
    *   base64, if necessary.)
+   * @param {Array<!Promise<!PublicKeyInfoDef>>} publicKeyInfos An array of keys
+   *   against which to validate.
    * @return {!Promise<ArrayBuffer>}  Promise to a guaranteed-valid AMP creative
    *   or null if the creative is unsigned or invalid.
    * @private
    */
-  validateAdResponse_(creative, signature) {
+  validateAdResponse_(creative, signature, publicKeyInfos) {
     // Validate when we have a signature and we have native crypto.
     if (!signature) {
       // Guaranteed not a AMP creative.
@@ -565,46 +599,30 @@ export class AmpA4A extends AMP.BaseElement {
 
   /**
    * Retrieves all public keys, as specified in _a4a-config.js.
-   * @return {!Promise<!Array<!PublicKeyInfoDef>>} A promise of an array of
-   *   public keys.
+   * @return {!Array<!Promise<!Array<!PublicKeyInfoDef>>>} An array of promises
+   *   of an array of PublicKeyInfoDef.
    * @private
    */
   getPublicKeySet_() {
-    return new Promise(resolve => {
-      const serviceNames = this.getSigningServiceNames_();
-      const keys = [];
-      let keysFetched = 0;
-
-      // This function is called whenever an xhr returns, or if no xhr can be
-      // made, such as in the case of an invalid signing service name. When
-      // called the function will set the keys retrieved and resolve the
-      // promise.
-      const tryResolving = () => {
-        if (++keysFetched == serviceNames.length) {
-          setPublicKeys(keys);
-          resolve();
-        }
-      };
-
-      serviceNames.map(serviceName => {
-        if (signingServerURLs[serviceName]) {
-          xhrFor(this.win).fetchJson(signingServerURLs[serviceName],
-              {mode: 'cors', method: 'GET'})
-          .then(keysContainer => {
-            if (!keysContainer || !keysContainer.keys) {
-              throw new Error('Invalid response from signing server.');
-            }
-            keys.push.apply(keys, keysContainer.keys);
-            tryResolving();
-          });
-        } else {
-          user().error('Amp Ad',
-              `Signing service '${serviceName}' does not exist.`,
-              this.element);
-          tryResolving();
-        }
-      });
-    });
+    const serviceNames = this.getSigningServiceNames_();
+    return serviceNames.map(serviceName =>
+        new Promise((resolve, reject) => {
+          const url = signingServerURLs[serviceName];
+          if (url) {
+            return xhrFor(this.win).fetchJson(url,
+                {mode: 'cors', method: 'GET'})
+                .then(keysContainer => {
+                  if (!keysContainer || !keysContainer.keys) {
+                    throw new Error('Invalid response from signing server.');
+                  }
+                  resolve(keysContainer.keys.map(importPublicKey));
+                });
+          } else {
+            const reason = `Signing service '${serviceName}' does not exist.`;
+            user().error('Amp Ad', reason, this.element);
+            reject(reason);
+          }
+        }));
   }
 
   /**
