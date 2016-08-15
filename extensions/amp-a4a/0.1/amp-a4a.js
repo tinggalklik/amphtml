@@ -155,6 +155,9 @@ export class AmpA4A extends AMP.BaseElement {
 
     /** @const @private {!Vsync} */
     this.vsync_ = this.getVsync();
+
+    /** @private {!Array<!Promise<!Array<!PublicKeyInfoDef>>>} */
+    this.keyFetchPromises_ = this.getPublicKeySet_();
   }
 
   /** @override */
@@ -263,9 +266,6 @@ export class AmpA4A extends AMP.BaseElement {
         throw cancellation();
       }
     };
-    // Start the signing server public key fetching process.
-    // TODO(levitzky) Consider starting this even earlier.
-    const keyFetchPromises = this.getPublicKeySet_();
 
     // Return value from this chain: True iff rendering was "successful"
     // (i.e., shouldn't try to render later via iframe); false iff should
@@ -331,7 +331,8 @@ export class AmpA4A extends AMP.BaseElement {
         checkStillCurrent(promiseId);
         if (!creativeParts ||
             !creativeParts.creative ||
-            !creativeParts.signature) {
+            !creativeParts.signature ||
+            !this.keyFetchPromises_) {
           return Promise.resolve(false);
         }
 
@@ -342,7 +343,7 @@ export class AmpA4A extends AMP.BaseElement {
           // Try publicKeyInfos in case we are in dev mode.
           // NOTE: Temporary until dev signing service is live.
           if (publicKeyInfos) {
-            keyFetchPromises.push(Promise.resolve(publicKeyInfos));
+            this.keyFetchPromises_.push(Promise.resolve(publicKeyInfos));
           }
 
           // When this value is the same as the number of promises to try, we
@@ -355,13 +356,13 @@ export class AmpA4A extends AMP.BaseElement {
             if (creative) {
               resolve(creative);
             }
-            if (++promisesTried == keyFetchPromises.length) {
+            if (++promisesTried == this.keyFetchPromises_.length) {
               resolve(null);
             }
           };
 
           // For each fetched key do:
-          keyFetchPromises.map(keyFetchPromise => {
+          this.keyFetchPromises_.map(keyFetchPromise => {
             keyFetchPromise.then(fetchedKeyInfos => {
               checkStillCurrent(promiseId);
               this.validateAdResponse_(
