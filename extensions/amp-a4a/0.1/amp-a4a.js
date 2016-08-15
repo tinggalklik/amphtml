@@ -369,7 +369,8 @@ export class AmpA4A extends AMP.BaseElement {
                   creativeParts.creative,
                   creativeParts.signature,
                   fetchedKeyInfos)
-                  .then(creative => tryResolving(creative));
+                  .then(creative => tryResolving(creative))
+                  .catch(() => tryResolving(null));
             });
           });
         });
