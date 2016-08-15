@@ -43,7 +43,7 @@ import {
  *
  * @type {Array<!Promise<!PublicKeyInfoDef>>}
  */
-let publicKeyInfos = [];
+const publicKeyInfos = [];
 
 // If we're in local dev mode then we may be talking to a dev validation
 // instance as well.  Dev validators use different keys than production ones
@@ -51,6 +51,7 @@ let publicKeyInfos = [];
 //
 // Note: This is temporary.  It will not be necessary once A4A can fetch keys
 // directly from the server.
+// TODO(levitzky) Remove once dev key can be fetched from server.
 if (getMode().localDev) {
   const devModulus =
       'oDK9vY5WkwS25IJWhFTmyy_xTeBHA5b72On2FqhjZPLSwadlC0gZG0lvzPjxE1ba' +
@@ -67,13 +68,6 @@ if (getMode().localDev) {
     alg: 'RS256',
     ext: true,
   }));
-}
-
-/**
- * @param {!Object} publicKeys An array of parsed JSON web keys.
- */
-export function setPublicKeys(publicKeys) {
-  publicKeyInfos = publicKeys.map(importPublicKey);
 }
 
 /**
@@ -111,6 +105,12 @@ const AMP_BODY_STRING = 'amp-ad-body';
 /** @typedef {{creative: ArrayBuffer, signature: ?Uint8Array}} */
 let AdResponseDef;
 
+/** @typedef {{cssUtf16CharOffsets: Array<number>,
+               cssReplacementRanges: Array<number>,
+               bodyUtf16CharOffsets: !Array<number>,
+               bodyAttributes: ?string,
+               customElementExtensions: Array<string>,
+               customStylesheets: Array<string>}} */
 let CreativeMetaDataDef;
 
 export class AmpA4A extends AMP.BaseElement {
