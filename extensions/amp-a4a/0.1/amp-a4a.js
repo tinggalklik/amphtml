@@ -370,6 +370,8 @@ export class AmpA4A extends AMP.BaseElement {
                   creativeParts.signature,
                   fetchedKeyInfos)
                   .then(creative => tryResolving(creative))
+                  // TODO(levitzky) Correctly handle errors produced by
+                  // validateAdResponse_.
                   .catch(() => tryResolving(null));
             });
           });
