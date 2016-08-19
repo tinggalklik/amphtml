@@ -346,22 +346,7 @@ export class AmpA4A extends AMP.BaseElement {
             this.keyFetchPromises_.push(Promise.resolve(publicKeyInfos));
           }
 
-          // When this value is the same as the number of promises to try, we
-          // know that we have checked each promise, and so can resolve.
-          let promisesTried = 0;
-
-          // If the given creative is valid, resolve with it. Otherwise, check
-          // if there are no more promises to try, and if so, resolve to null.
-          const tryResolving = creative => {
-            if (creative) {
-              resolve(creative);
-            }
-            if (++promisesTried == this.keyFetchPromises_.length) {
-              resolve(null);
-            }
-          };
-
-          // For each fetched key do:
+          const errors = [];
           this.keyFetchPromises_.map(keyFetchPromise => {
             keyFetchPromise.then(fetchedKeyInfos => {
               checkStillCurrent(promiseId);
@@ -369,10 +354,15 @@ export class AmpA4A extends AMP.BaseElement {
                   creativeParts.creative,
                   creativeParts.signature,
                   fetchedKeyInfos)
-                  .then(creative => tryResolving(creative))
+                  .then(creative => resolve(creative))
                   // TODO(levitzky) Correctly handle errors produced by
                   // validateAdResponse_.
-                  .catch(() => tryResolving(null));
+                  .catch(error => {
+                    errors.push(error);
+                    if (errors.length >= this.keyFetchPromises_.length) {
+                      resolve(null);
+                    }
+                  });
             });
           });
         });
