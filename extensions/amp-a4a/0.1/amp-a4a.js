@@ -41,7 +41,7 @@ import {
 /**
  * Dev public key. This will go away once the dev signing service goes live.
  *
- * @type {Array<!Promise<!PublicKeyInfoDef>>}
+ * @type {?Array<!Promise<!PublicKeyInfoDef>>}
  */
 const devPublicKeyInfos = getMode().localDev ? importPublicKey({
   kty: 'RSA',
