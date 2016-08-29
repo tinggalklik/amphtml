@@ -16,7 +16,7 @@
 
 import {makeCorrelator} from './correlator';
 import {validateData, loadScript} from '../../3p/3p';
-import {dev, user} from '../../src/log';
+import {user} from '../../src/log';
 
 /**
  * @enum {number}
@@ -104,7 +104,7 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
         const w = Number(size[0]);
         const h = Number(size[1]);
 
-        if (!Number.isNaN(w) && !Number.isNaN(h)) {
+        if (!isNaN(w) && !isNaN(h)) {
           const primaryW = dimensions[0][0];
           const primaryH = dimensions[0][1];
 
@@ -128,12 +128,13 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
             }
           } else {
             user().error('AMP-AD',
-                'Secondary sizes must be strictly smaller than the primary size.',
+                'Secondary sizes must be strictly smaller than the primary ' +
+                'size.',
                 '<amp-ad>');
           }
         } else {
-          user().error('AMP-AD', 'Invalid width or height given for secondary' +
-              'size.', '<amp-ad>');
+          user().error('AMP-AD', 'Invalid width or height given for ' +
+              'secondary size.', '<amp-ad>');
         }
       } else {
         user().error('AMP-Ad', 'Invalid multi-size data format.',
@@ -208,14 +209,13 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
           const returnedSize = event.size;
 
           // Is the retruned size strictly smaller than primary inventory size?
-          if (returnedSize[0] < primaryInvSize[0] && returnedSize[1] < primaryInvSize[1]) {
-            window.context.onResizeSuccess((requestedHeight, requestedWidth) => {
+          if (returnedSize[0] < primaryInvSize[0] &&
+              returnedSize[1] < primaryInvSize[1]) {
+            window.context.onResizeSuccess(() => {
               // Nothing needs to be done.
               console.log('Success');
             });
-            window.context.onResizeDenied((requestedHeight, requestedWidth) => {
-              // TODO(levitzky) Resize the AMP-created iframe such that the
-              // tag-created iframe is centered within it.
+            window.context.onResizeDenied(() => {
               console.log('Denied');
             });
             window.context.requestResize(returnedSize[0], returnedSize[1]);
