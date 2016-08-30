@@ -72,9 +72,12 @@ export function doubleclick(global, data) {
 }
 
 /**
+ * A helper function for determining whether a given width or height violates
+ * some condition.
+ *
  * Checks the width and height against their corresponding conditions and
  * returns which evaluated to true and the corresponding value. Returns null if
- * neither condition is met.
+ * neither condition evaluates to true.
  * @param {(number|string)} width
  * @param {(number|string)} height
  * @param {!function((number|string)): boolean} widthCond
