@@ -29,6 +29,8 @@ const GladeExperiment = {
   GLADE_OPT_OUT: 3,
 };
 
+const TAG_ = 'AMP-AD';
+
 /**
  * @param {!Window} global
  * @param {!Object} data
@@ -70,6 +72,29 @@ export function doubleclick(global, data) {
 }
 
 /**
+ * Checks the width and height against their corresponding conditions and
+ * returns which evaluated to true and the corresponding value. Returns null if
+ * neither condition is met.
+ * @param {(number|string)} width
+ * @param {(number|string)} height
+ * @param {!function((number|string)): boolean} widthCond
+ * @param {!function((number|string)): boolean} heightCond
+ * @return {?{badDim: string, badVal: (string|number}}
+ */
+function getBadParams(width, height, widthCond, heightCond) {
+  if (widthCond(width) && heightCond(height)) {
+    return {badDim: 'width and height', badVal: width + 'x' + height};
+  }
+  else if (widthCond(width)) {
+    return {badDim: 'width', badVal: width};
+  }
+  else if (heightCond(height)) {
+    return {badDim: 'height', badVal: height};
+  }
+  return null;
+}
+
+/**
  * @param {!Window} global
  * @param {!Object} data
  * @param {!GladeExperiment} gladeExperiment
@@ -98,48 +123,67 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
   if (multiSizeDataStr) {
     const sizesStr = multiSizeDataStr.split(',');
     sizesStr.forEach(sizeStr => {
+
       const size = sizeStr.split('x');
-      if (Array.isArray(size) && size.length == 2) {
 
-        const w = Number(size[0]);
-        const h = Number(size[1]);
-
-        if (!isNaN(w) && !isNaN(h)) {
-          const primaryW = dimensions[0][0];
-          const primaryH = dimensions[0][1];
-
-          // Check secondary size strictly less than primary size.
-          if (w < primaryW && h < primaryH) {
-            // The minimum ratio of each secondary dimension to its corresponding
-            // primary dimension.
-            const minRatio = 2 / 3;
-            // Check that if multi-size-validation is on, that the secondary sizes
-            // are at least minRatio of the primary size.
-            const sizeValidation = data.multiSizeValidation;
-            if ((sizeValidation === 'false' || sizeValidation === false) ||
-                (w >= minRatio * primaryW && h >= minRatio * primaryH)) {
-              dimensions.push([w, h]);
-            } else {
-              user().error('AMP-AD',
-                  'Each secondary dimension must be at least 2/3rds of the ' +
-                  'corresponding primary dimension, or the ' +
-                  'data-multi-size-validation attribute must be set to false.',
-                  '<amp-ad>');
-            }
-          } else {
-            user().error('AMP-AD',
-                'Secondary sizes must be strictly smaller than the primary ' +
-                'size.',
-                '<amp-ad>');
-          }
-        } else {
-          user().error('AMP-AD', 'Invalid width or height given for ' +
-              'secondary size.', '<amp-ad>');
-        }
-      } else {
-        user().error('AMP-Ad', 'Invalid multi-size data format.',
-            '<amp-ad>');
+      // Make sure that each size is specified in the form val1xval2.
+      if (!Array.isArray(size) || size.length != 2) {
+        user().error(TAG_, 'Invalid multi-size data format.', '<amp-ad>');
+        return;
       }
+
+      const widthStr = size[0];
+      const heightStr = size[1];
+
+      // Make sure that both dimensions given are numbers.
+      let badParams = getBadParams(widthStr, heightStr,
+          w => isNaN(Number(w)),
+          h => isNaN(Number(h)));
+      if (badParams) {
+        user().error(TAG_,
+            `Invalid ${badParams.badDim} of ${badParams.badVal} given for ` +
+            'secondary size.',
+            '<amp-ad>');
+        return;
+      }
+
+      const width = Number(widthStr);
+      const height = Number(heightStr);
+      const primarySize = dimensions[0];
+      const primaryWidth = primarySize[0];
+      const primaryHeight = primarySize[1];
+
+      // Check that secondary size is not larger than primary size.
+      badParams = getBadParams(width, height, w => w > primaryWidth,
+          h => h > primaryHeight);
+      if (badParams) {
+        user().error(TAG_,
+            `Secondary ${badParams.badDim} ${badParams.badVal} ` +
+            `can't be larger than the primary ${badParams.badDim}.`,
+            '<amp-ad>');
+        return;
+      }
+
+      // The minimum ratio of each secondary dimension to its corresponding
+      // primary dimension.
+      const minRatio = 2 / 3;
+      const minWidth = minRatio * primaryWidth;
+      const minHeight = minRatio * primaryHeight;
+
+      // Check that if multi-size-validation is on, that the secondary sizes
+      // are at least minRatio of the primary size.
+      const validate = data.multiSizeValidation;
+      badParams = getBadParams(width, height, w => w < minWidth,
+          h => h < minHeight);
+      if (validate !== 'false' && validate !== false && badParams) {
+        user().error(TAG_,
+            `Secondary ${badParams.badDim} ${badParams.badVal} is smaller ` +
+            `than 2/3rds of the primary ${badParams.badDim}.`, '<amp-ad>');
+        return;
+      }
+
+      // Passed all checks! Push additional size to dimensions.
+      dimensions.push([width, height]);
     });
   }
 
@@ -194,33 +238,31 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
       }
 
       pubads.addEventListener('slotRenderEnded', event => {
+        const primaryInvSize = dimensions[0];
+        const pWidth = primaryInvSize[0];
+        const pHeight = primaryInvSize[1];
+        const returnedSize = event.size;
+        const rWidth = returnedSize ? returnedSize[0] : null;
+        const rHeight = returnedSize ? returnedSize[1] : null;
+
         let creativeId = event.creativeId || '_backfill_';
-        if (event.isEmpty) {
+
+        // If the creative is empty, or either dimension of the returned size
+        // is larger than its counterpart in the primary size, then we don't
+        // want to render the creative.
+        if (event.isEmpty ||
+            returnedSize && (rWidth >= pWidth || rHeight >= pHeight)) {
           global.context.noContentAvailable();
           creativeId = '_empty_';
+        } else {
+          // We don't want to call renderStart() on ads that failed to load, for
+          // whatever reasons, because then the fallback will not be shown.
+          global.context.renderStart();
         }
-        global.context.renderStart();
         global.context.reportRenderedEntityIdentifier('dfp-' + creativeId);
-
-        // Handle multi-size-ad request
-        if (dimensions.length > 1) {
-
-          const primaryInvSize = dimensions[0];
-          const returnedSize = event.size;
-
-          // Is the retruned size strictly smaller than primary inventory size?
-          if (returnedSize[0] < primaryInvSize[0] &&
-              returnedSize[1] < primaryInvSize[1]) {
-            window.context.onResizeSuccess(() => {
-              // Nothing needs to be done.
-              console.log('Success');
-            });
-            window.context.onResizeDenied(() => {
-              console.log('Denied');
-            });
-            window.context.requestResize(returnedSize[0], returnedSize[1]);
-          }
-        }
+        // TODO(levitzky) This call will no longer be necessary once
+        // renderStart() can take a size as an argument.
+        global.context.requestResize(rWidth, rHeight);
       });
 
       // Exported for testing.
