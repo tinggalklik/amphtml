@@ -251,7 +251,7 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
         // is larger than its counterpart in the primary size, then we don't
         // want to render the creative.
         if (event.isEmpty ||
-            returnedSize && (rWidth >= pWidth || rHeight >= pHeight)) {
+            returnedSize && (rWidth > pWidth || rHeight > pHeight)) {
           global.context.noContentAvailable();
           creativeId = '_empty_';
         } else {
