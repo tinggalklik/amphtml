@@ -51,10 +51,10 @@ describe.configure().retryOnSaucelabs().run('Rendering of one ad', () => {
     }
   });
 
-  it.skip('should create an iframe loaded', function() {
+  it('should create an iframe loaded', function() {
     this.timeout(20000);
     let iframe;
-    let ampAd;
+    let ampAd;debugger;
     const isEdge = navigator.userAgent.match(/Edge/);
     return pollForLayout(fixture.win, 1, 5500).then(() => {
       return poll('frame to be in DOM', () => {
@@ -64,11 +64,14 @@ describe.configure().retryOnSaucelabs().run('Rendering of one ad', () => {
       iframe = iframeElement;
       expect(fixture.doc.querySelectorAll('iframe')).to.have.length(1);
       ampAd = iframe.parentElement;
-      expect(iframe.src).to.contain('multiSize');
+      //expect(iframe.src).to.contain('multiSize');
     }).then(() => {
+      debugger;
       return poll('frame to load', () => {
-        return iframe.contentWindow && iframe.contentWindow.document &&
-            iframe.contentWindow.document.getElementById('c');
+        const c1 = iframe.contentWindow;
+        const c2 = iframe.contentWindow.document;
+        const c3 = iframe.contentWindow.document.getElementById('c');
+        return c1 && c2 && c3;
       });
     }).then(unusedCanvas => {
       return poll('3p JS to load.', () => iframe.contentWindow.context);

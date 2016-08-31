@@ -55,7 +55,8 @@ export function doubleclick(global, data) {
     };
   }
 
-  if (data.useSameDomainRenderingUntilDeprecated != undefined) {
+  if (data.useSameDomainRenderingUntilDeprecated != undefined ||
+      data.multiSize != undefined) {
     doubleClickWithGpt(global, data, GladeExperiment.GLADE_OPT_OUT);
   } else {
     const dice = Math.random();
