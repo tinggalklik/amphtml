@@ -319,15 +319,6 @@ function doubleClickWithGlade(global, data, gladeExperiment) {
   }
   slot.setAttribute('data-page-url', global.context.canonicalUrl);
 
-  // Center the ad in the container.
-  slot.setAttribute('height', requestHeight);
-  slot.setAttribute('width', requestWidth);
-  slot.style.top = '50%';
-  slot.style.left = '50%';
-  slot.style.bottom = '';
-  slot.style.right = '';
-  slot.style.transform = 'translate(-50%, -50%)';
-
   slot.addEventListener('gladeAdFetched', event => {
     if (event.detail.empty) {
       global.context.noContentAvailable();
