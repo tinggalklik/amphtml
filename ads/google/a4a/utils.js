@@ -23,6 +23,7 @@ import {getMode} from '../../../src/mode';
 import {isProxyOrigin} from '../../../src/url';
 import {viewerForDoc} from '../../../src/viewer';
 import {base64UrlDecodeToBytes} from '../../../src/utils/base64';
+import {domFingerprint} from '../../utils/dom-fingerprint';
 
 /** @const {string} */
 const AMP_SIGNATURE_HEADER = 'X-AmpAdSignature';
@@ -137,6 +138,7 @@ function buildAdUrl(
       {name: 'amp_v', value: '$internalRuntimeVersion$'},
       {name: 'dt', value: startTime},
       {name: 'adk', value: adKey(slotNumber, slotRect, viewportRect)},
+      {name: 'adf', value: domFingerprint(a4a.win, a4a.element)},
       {name: 'c', value: makeCorrelator(clientId, documentInfo.pageViewId)},
       {name: 'output', value: 'html'},
       {name: 'nhd', value: iframeDepth},
