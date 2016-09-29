@@ -126,6 +126,7 @@ function buildAdUrl(
   const slotRect = a4a.getIntersectionElementLayoutBox();
   const viewportRect = a4a.getViewport().getRect();
   const iframeDepth = iframeNestingDepth(global);
+  const browserViewPortSize = browserViewportSize(global);
   const dtdParam = {name: 'dtd'};
   const allQueryParams = queryParams.concat(
     [
@@ -144,7 +145,10 @@ function buildAdUrl(
       {name: 'biw', value: viewportRect.width},
       {name: 'adx', value: slotRect.left},
       {name: 'ady', value: slotRect.top},
-      {name: 'u_hist', value: getHistoryLength(global)},
+      {name: 'u_his', value: getHistoryLength(global)},
+      {name: 'brdim', value: additionalDimensions(global)},
+      {name: 'isw', value: browserViewPortSize.width},
+      {name: 'ish', value: browserViewPortSize.height},
       dtdParam,
     ],
     unboundedQueryParams,
@@ -305,3 +309,60 @@ function elapsedTimeWithCeiling(time, start) {
   }
   return '-M';
 }
+
+/**
+ * Browser viewport size, if we are in an iframe.
+ * @param {!Window} win The window for which we read the browser dimensions.
+ * @return {?{width: number, height: number}}
+ */
+function browserViewportSize(win) {
+  const w = win.top;
+  if (win != w) {
+    let width = -1;
+    let height = -1;
+    try {
+      if (w.document && w.document.body) {
+        const body = w.document.body;
+        width = Math.round(body.clientWidth);
+        height = Math.round(body.clientHeight);
+      }
+    } catch (e) {
+      width = -0xbadbad;
+      height = -0xbadbad;
+    }
+    return {width, height};
+  };
+  return null;
+}
+
+/**
+ * Collect additional dimensions for the brdim parameter.
+ * @param {!Window} win The window for which we read the browser dimensions.
+ * @return {string}
+ */
+function additionalDimensions(win) {
+  // Some browsers throw errors on some of these.
+  let screenX, screenY, outerWidth, outerHeight, innerWidth, innerHeight;
+  try {
+    screenX = win.screenX;
+    screenY = win.screenY;
+  } catch (e) {}
+  try {
+    outerWidth = win.outerWidth;
+    outerHeight = win.outerHeight;
+  } catch (e) {}
+  try {
+    innerWidth = win.innerWidth;
+    innerHeight = win.innerHeight;
+  } catch (e) {}
+  return [win.screenLeft,
+          win.screenTop,
+          screenX,
+          screenY,
+          win.screen ? win.screen.availWidth : undefined,
+          win.screen ? win.screen.availTop : undefined,
+          outerWidth,
+          outerHeight,
+          innerWidth,
+          innerHeight].join();
+};

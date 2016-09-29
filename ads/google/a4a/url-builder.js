@@ -68,5 +68,6 @@ export function buildUrl(
   if (!encodedParams.length) {
     return baseUrl;
   }
+  console.log('url:' + encodedParams.join('&'));
   return baseUrl + '?' + encodedParams.join('&');
 }
