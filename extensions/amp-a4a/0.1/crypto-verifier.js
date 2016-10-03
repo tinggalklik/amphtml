@@ -15,20 +15,13 @@
  */
 
 import {base64UrlDecodeToBytes} from '../../../src/utils/base64';
-import {stringToBytes} from '../../../src/utils/bytes';
-import {dev} from '../../../src/log';
-
-const TAG_ = 'CryptoVerifier';
+import {utf8Encode} from '../../../src/utils/bytes';
 
 /** @const {boolean} */
 const isWebkit = window.crypto && 'webkitSubtle' in window.crypto;
 
 const crossCrypto = isWebkit ? window.crypto['webkitSubtle'] :
                                window.crypto.subtle;
-
-/** @const {?SubtleCrypto} */
-const crossCrypto = window.crypto ?
-    (isWebkit ? window.crypto.webkitSubtle : window.crypto.subtle) : null;
 
 /** @const {number} */
 const VERSION = 0x00;
