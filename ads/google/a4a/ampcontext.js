@@ -16,12 +16,20 @@ class ampContext{
       this.ampWindow = this.ancestors[this.depth];
     }
   }
-  metadata(){
+  metadata(callback){
     this.ampWindow.postMessage({
       sentinel: this.sentinel,
       type: 'send-embed-context'
     }, '*');
-    this.setupEventListener('embed-context', dummyCallback);
+    this.setupEventListener('embed-context', callback);
+  };
+
+  observePageVisibility(callback){
+    this.ampWindow.postMessage({
+      sentinel: this.sentinel,
+      type: 'send-embed-state'
+    }, '*');
+    this.setupEventListener('embed-state', callback);
   };
 
   observeIntersection(callback) {
@@ -32,6 +40,15 @@ class ampContext{
       }, '*');
 
     this.setupEventListener('intersection', callback);
+  };
+
+  resizeAd(width, height){
+    this.ampWindow.postMessage({
+      sentinel: this.sentinel,
+      type: 'embed-size',
+      width: width,
+      height: height
+    }, '*');
   };
 
   setupEventListener(message_type, callback){
@@ -49,7 +66,7 @@ class ampContext{
           if (payload.sentinel == context.sentinel) {
             // Is it an intersection update?
             if (payload.type == message_type) {
-	      callback(payload.changes);
+	      callback(payload);
             }
           }
 	} catch (e) {
@@ -62,27 +79,28 @@ class ampContext{
 };
 
 
-function intersectionCallback(changes){
-          // Step 4: Do something with the intersection updates!
-          // Code below is simply an example.
-          var latestChange = changes[changes.length - 1];
+function intersectionCallback(payload){
+  changes = payload.changes;
+  // Step 4: Do something with the intersection updates!
+  // Code below is simply an example.
+  var latestChange = changes[changes.length - 1];
 
-          // Amp-ad width and height.
-          var w = latestChange.boundingClientRect.width;
-          var h = latestChange.boundingClientRect.height;
+  // Amp-ad width and height.
+  var w = latestChange.boundingClientRect.width;
+  var h = latestChange.boundingClientRect.height;
 
-          // Visible width and height.
-          var vw = latestChange.intersectionRect.width;
-          var vh = latestChange.intersectionRect.height;
+  // Visible width and height.
+  var vw = latestChange.intersectionRect.width;
+  var vh = latestChange.intersectionRect.height;
 
-          // Position in the viewport.
-          var vx = latestChange.boundingClientRect.x;
-          var vy = latestChange.boundingClientRect.y;
+  // Position in the viewport.
+  var vx = latestChange.boundingClientRect.x;
+  var vy = latestChange.boundingClientRect.y;
 
-          // Viewable percentage.
-          var viewablePerc = (vw * vh) / (w * h) * 100;
+  // Viewable percentage.
+  var viewablePerc = (vw * vh) / (w * h) * 100;
 
-          console.log(viewablePerc, w, h, vw, vh, vx, vy);
+  console.log(viewablePerc, w, h, vw, vh, vx, vy);
 
 }
 

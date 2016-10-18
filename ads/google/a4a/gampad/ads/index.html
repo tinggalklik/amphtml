@@ -1,8 +1,9 @@
 <style>body { background: lightblue; }</style>
 I am an ad. TEST TEST TEST
-<button onclick="aC.observeIntersection(intersectionCallback)">start observing</button>
-<button onclick="resizeAd()">resize ad</button>
-<button onclick="aC.metadata()">metadata</button>
+<button onclick="aC.observeIntersection(intersectionCallback)">Observe Intersections</button>
+<button onclick="aC.observePageVisibility(dummyCallback)">observe visibility</button>
+<button onclick="aC.resizeAd(500,600)">resize ad</button>
+<button onclick="aC.metadata(dummyCallback)">metadata</button>
 
 <script src="../../examplePublisherScript.js"></script>
 <script src="../../ampcontext.js"></script>
