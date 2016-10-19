@@ -17,7 +17,7 @@
 
 import {dev, user} from './log';
 import {documentInfoForDoc} from './document-info';
-import {getLengthNumeral} from '../src/layout';
+import {getLengthNumeral} from './layout';
 import {getService} from './service';
 import {tryParseJson} from './json';
 import {getMode} from './mode';
@@ -26,7 +26,7 @@ import {dashToCamelCase} from './string';
 import {parseUrl, assertHttpsUrl} from './url';
 import {viewerForDoc} from './viewer';
 import {urls} from './config';
-import {domFingerprint} from '../ads/utils/dom-fingerprint';
+import {domFingerprint} from './utils/dom-fingerprint';
 
 
 /** @type {!Object<string,number>} Number of 3p frames on the for that type. */
@@ -81,7 +81,7 @@ function getFrameAttributes(parentWindow, element, opt_type, opt_context) {
     hidden: !viewer.isVisible(),
     amp3pSentinel: generateSentinel(parentWindow),
     initialIntersection: element.getIntersectionChangeEntry(),
-    domFingerprint: domFingerprint(parentWindow, element),
+    domFingerprint: domFingerprint(element),
     startTime,
   };
   Object.assign(attributes._context, opt_context);

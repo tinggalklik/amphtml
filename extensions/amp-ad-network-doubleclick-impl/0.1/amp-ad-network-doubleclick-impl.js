@@ -30,6 +30,10 @@ import {
   googleAdUrl,
   isGoogleAdsA4AValidEnvironment,
 } from '../../../ads/google/a4a/utils';
+import {
+  domFingerprintString,
+  stringHash32,
+} from '../../../src/utils/dom-fingerprint';
 
 /** @const {string} */
 const DOUBLECLICK_BASE_URL =
@@ -58,6 +62,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     const global = this.win;
     const slotNumber = getGoogleAdSlotCounter(global).nextSlotNumber();
     const slotRect = this.getIntersectionElementLayoutBox();
+    const size = `${slotRect.width}x${slotRect.height}`;
     const rawJson = this.element.getAttribute('json');
     const jsonParameters = rawJson ? JSON.parse(rawJson) : {};
     const tfcd = jsonParameters['tfcd'];
@@ -65,11 +70,11 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     return googleAdUrl(this, DOUBLECLICK_BASE_URL, startTime, slotNumber, [
       {name: 'iu', value: this.element.getAttribute('data-slot')},
       {name: 'co', value: jsonParameters['cookieOptOut'] ? '1' : null},
+      {name: 'adk', value: this.adKey_(size)},
       {name: 'gdfp_req', value: '1'},
-      {name: 'd_imp', value: '1'},
       {name: 'impl', value: 'ifr'},
       {name: 'sfv', value: 'A'},
-      {name: 'sz', value: `${slotRect.width}x${slotRect.height}`},
+      {name: 'sz', value: size},
       {name: 'tfcd', value: tfcd == undefined ? null : tfcd},
       {name: 'u_sd', value: global.devicePixelRatio},
       {name: 'adtest', value: adTestOn},
@@ -88,6 +93,19 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     return extractGoogleAdCreativeAndSignature(responseText, responseHeaders);
   }
 
+  /**
+   * @param {string} size
+   * @return {string} The ad unit hash key string.
+   * @private
+   */
+  adKey_(size) {
+    const element = this.element;
+    const domFingerprint = domFingerprintString(element);
+    const slot = element.getAttribute('data-slot') || '';
+    const multiSize = element.getAttribute('data-multi-size') || '';
+    const string = `${slot}:${size}:${multiSize}:${domFingerprint}`;
+    return stringHash32(string).toString();
+  }
 }
 
 AMP.registerElement(

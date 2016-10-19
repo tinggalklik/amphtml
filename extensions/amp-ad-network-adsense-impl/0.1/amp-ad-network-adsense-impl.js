@@ -32,6 +32,10 @@ import {
 } from '../../../ads/google/a4a/utils';
 import {documentStateFor} from '../../../src/document-state';
 import {getMode} from '../../../src/mode';
+import {
+  domFingerprintString,
+  stringHash32,
+} from '../../../src/utils/dom-fingerprint';
 
 /** @const {string} */
 const ADSENSE_BASE_URL = 'https://googleads.g.doubleclick.net/pagead/ads';
@@ -68,21 +72,22 @@ export class AmpAdNetworkAdsenseImpl extends AmpA4A {
     const slotRect = this.getIntersectionElementLayoutBox();
     const visibilityState = documentStateFor(global).getVisibilityState();
     const adTestOn = this.element.getAttribute('data-adtest') ||
-        isInManualExperiment(this.element);
+          isInManualExperiment(this.element);
+    const format = `${slotRect.width}x${slotRect.height}`;
     return googleAdUrl(this, ADSENSE_BASE_URL, startTime, slotNumber, [
       {name: 'client', value: this.element.getAttribute('data-ad-client')},
-      {name: 'format', value: `${slotRect.width}x${slotRect.height}`},
+      {name: 'format', value: format},
       {name: 'w', value: slotRect.width},
       {name: 'h', value: slotRect.height},
       {name: 'iu', value: this.element.getAttribute('data-ad-slot')},
       {name: 'adtest', value: adTestOn},
+      {name: 'adk', value: this.adKey_(format)},
       {
         name: 'bc',
         value: global.SVGElement && global.document.createElementNS ?
             '1' : null,
       },
       {name: 'ctypes', value: this.getCtypes_()},
-      {name: 'd_imp', value: '1'},
       {name: 'host', value: this.element.getAttribute('data-ad-host')},
       {name: 'ifi', value: slotNumber},
       {name: 'to', value: this.element.getAttribute('data-tag-origin')},
@@ -100,6 +105,18 @@ export class AmpAdNetworkAdsenseImpl extends AmpA4A {
   /** @override */
   extractCreativeAndSignature(responseText, responseHeaders) {
     return extractGoogleAdCreativeAndSignature(responseText, responseHeaders);
+  }
+
+  /**
+   * @param {string} format
+   * @return {string} The ad unit hash key string.
+   * @private
+   */
+  adKey_(format) {
+    const element = this.element;
+    const slot = element.getAttribute('data-ad-slot') || '';
+    const string = `${slot}:${format}:${domFingerprintString(element)}`;
+    return stringHash32(string).toString();
   }
 
   /**

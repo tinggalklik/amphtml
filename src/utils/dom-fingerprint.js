@@ -64,7 +64,7 @@ function indexWithinParent(element) {
  *       <tr>            // tr:0
  *         <td>...</td>  // td:0
  *         <td>          // td:1
- *           <script>...</script>
+ *           <amp-ad ...></amp-ad>
  *         </td>
  *       </tr>
  *       <tr>...</tr>    // tr:1
@@ -72,37 +72,24 @@ function indexWithinParent(element) {
  *   </div>
  * </div>
  *
- * With the most nested td element passed in as parameter:
- * 'td.1,tr.0,table.0,div/id2.0,div/id1.0' is returned if
- *     opt_excludeIds is false.
- * 'td.1,tr.0,table.0,div.0,div.0' is returned if opt_excludeIds is true.
+ * With the amp-ad element passed in:
+ * 'amp-ad.0,td.1,tr.0,table.0,div/id2.0,div/id1.0'
  *
  * Note: 25 is chosen arbitrarily.
  *
- * @param {?Element} element DOM node to get id of.
- * @param {boolean=} opt_excludeIds Whether to exclude ids (optional,
- *     default false)
+ * @param {?Element} element DOM node from which to get fingerprint.
  * @return {string} Concatenated element ids.
  */
-function getDomChainElements(element, opt_excludeIds) {
+export function domFingerprintString(element) {
   const ids = [];
-  for (let level = 0; element && level < 25; ++level) {
-    // Avoid using element.id if element is actually the document object itself:
-    // mootools sets document.id to be some javascript function, which
-    // would make the value of this function depend on a race.
-    let id = '';
-    if (!opt_excludeIds) {
-      id = element.nodeType != /* Document */ 9 && element.id;
-      if (id) {
-        id = '/' + id;
-      } else {
-        id = '';
-      }
-    }
+  for (let level = 0; element && element.nodeType == /* element */ 1 &&
+           level < 25; ++level) {
+    // Skip generated id on amp-ad.
+    const id = level > 0 && element.id;
     const nodeName = element.nodeName &&
-        element.nodeName.toString().toLowerCase();
-    ids.push(nodeName + id +
-        indexWithinParent(element));
+          element.nodeName.toString().toLowerCase();
+    ids.push(nodeName + (id ? '/' + id : '') +
+             indexWithinParent(element));
     element = element.parentElement;
   }
 
@@ -111,31 +98,28 @@ function getDomChainElements(element, opt_excludeIds) {
 
 /**
  * Calculates ad slot DOM fingerprint.  This key is intended to
- * identify "same" ad unit across many page views. This version is completely
- * based on where the ad appears within the frame's DOM structure, and where
- * the frame appears within the page's arrangement of nested frames. It
- * does not include width or height, which can now vary with resposive design.
+ * identify "same" ad unit across many page views. This is
+ * based on where the ad appears within the page's DOM structure.
  *
- * @param {?Window} win The window object.
- * @param {?Element} keyElement The DOM element from which to collect
+ * @param {?Element} element The DOM element from which to collect
  *     the DOM chain element IDs.  If null, DOM chain element IDs are not
  *     included in the hash.
  * @return {string} The ad unit hash key string.
  */
-export function domFingerprint(win, element) {
-  return stringHash32(getDomChainElements(element)).toString();
+export function domFingerprint(element) {
+  return stringHash32(domFingerprintString(element)).toString();
 };
 
 /**
- * A variant of the djb2 algorithm.
+ * Hash function djb2a
  * @param {string} str
  * @return {number} 32-bit unsigned hash of the string
  */
-function stringHash32(str) {
+export function stringHash32(str) {
   const length = str.length;
   let hash = 5381;
   for (let i = 0; i < length; i++) {
-    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+    hash = hash * 33 ^ str.charCodeAt(i);
   }
   // Convert from 32-bit signed to unsigned.
   return hash >>> 0;
