@@ -1,7 +1,18 @@
 var windowContextCreated = new Event('windowContextCreated');
 
 class ampContext{
+
   constructor() {
+    this.listening = false;
+
+    // Map message_type keys to boolean whether we should be listening to
+    // that type of message
+    this.listenFor = {};
+
+    // Map message_type keys to callback functions for when we receive
+    // that message
+    this.callbackFor = {};
+
     var hashMatch = location.hash.match(/amp3pSentinel=((\d+)-\d+)/);
     if (hashMatch) {
       // Sentinel has the format of "$windowDepth-$randomNumber".
@@ -18,28 +29,37 @@ class ampContext{
   }
 
   setupEventListener(message_type, callback){
-    var context = this;
-    window.addEventListener('message', function(message) {
-      // Does it look a message from AMP?
-      if (message.source == context.ampWindow && message.data &&
-          message.data.indexOf('amp-') == 0) {
-	var changes;
-	var embedState;
-	// See if we can parse the payload.
-	try {
-          var payload = JSON.parse(message.data.substring(4));
-          // Check the sentinel as well.
-          if (payload.sentinel == context.sentinel) {
-            // Is it an intersection update?
-            if (payload.type == message_type) {
-	      callback(payload);
+    this.listenFor[message_type] = true;
+    this.callbackFor[message_type] = callback;
+    if (!this.listening){
+      this.listening = true;
+      var context = this;
+      window.addEventListener('message', function(message) {
+	// Does it look a message from AMP?
+	if (message.source == context.ampWindow && message.data &&
+            message.data.indexOf('amp-') == 0) {
+	  var changes;
+	  var embedState;
+	  // See if we can parse the payload.
+	  try {
+            var payload = JSON.parse(message.data.substring(4));
+            // Check the sentinel as well.
+            if (payload.sentinel == context.sentinel) {
+              // Is it an intersection update?
+              if (context.listenFor[payload.type] == true) {
+		context.callbackFor[payload.type](payload);
+              }
             }
-          }
-	} catch (e) {
-          // JSON parsing failed. Ignore the message.
+	  } catch (e) {
+            // JSON parsing failed. Ignore the message.
+	  }
 	}
-      }
-    });
+      });
+    }
+    return () => {
+      this.listenFor[message_type] = false;
+      this.callbackFor[message_type] = undefined;
+    };
   };
 };
 
@@ -48,7 +68,7 @@ ampContext.prototype.metadata = function(callback){
     sentinel: this.sentinel,
     type: 'send-embed-context'
   }, '*');
-  this.setupEventListener('embed-context', callback);
+  return this.setupEventListener('embed-context', callback);
 };
 
 ampContext.prototype.observePageVisibility = function(callback){
@@ -57,7 +77,7 @@ ampContext.prototype.observePageVisibility = function(callback){
     type: 'send-embed-state'
   }, '*');
 
-  this.setupEventListener('embed-state', callback);
+  return this.setupEventListener('embed-state', callback);
 };
 
 ampContext.prototype.observeIntersection = function(callback) {
@@ -66,7 +86,7 @@ ampContext.prototype.observeIntersection = function(callback) {
     type: 'send-intersections'
   }, '*');
 
-  this.setupEventListener('intersection', callback);
+  return this.setupEventListener('intersection', callback);
 };
 
 ampContext.prototype.resizeAd = function(width, height){
