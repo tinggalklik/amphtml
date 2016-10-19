@@ -95,14 +95,12 @@ export class AmpAdApiHandler {
           this.element_.creativeId = info.data.id;
         });
 
-
-    console.log("Making listener");
+    // Listen for metadata request postMessage from inside ad iframe.
     listenFor(this.iframe_, 'send-embed-context',
-	      (data, source, origin) => {
-		console.log("Trying to send");
-		this.sendEmbedContext_(source, origin, this.iframe_._context)
-	      },
-	      this.is3p_, this.is3p_);
+              (data, source, origin) => {
+                this.sendEmbedContext_(source, origin, this.iframe_._context);
+              },
+        this.is3p_, this.is3p_);
 
     // Install iframe resize API.
     this.unlisteners_.push(listenFor(this.iframe_, 'embed-size',
@@ -281,7 +279,6 @@ export class AmpAdApiHandler {
     // context object. This is to ensure that we don't inadvertently expose
     // more API surface than we intend to and end up with somebody depending
     // on it.
-    console.log("Sending embed context");
     postMessageToWindows(this.iframe_, [{win, origin}], 'embed-context', {
       location: context.location,
       referrer: context.referrer,
