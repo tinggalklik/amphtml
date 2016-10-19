@@ -16,40 +16,6 @@ class ampContext{
       this.ampWindow = this.ancestors[this.depth];
     }
   }
-  metadata(callback){
-    this.ampWindow.postMessage({
-      sentinel: this.sentinel,
-      type: 'send-embed-context'
-    }, '*');
-    this.setupEventListener('embed-context', callback);
-  };
-
-  observePageVisibility(callback){
-    this.ampWindow.postMessage({
-      sentinel: this.sentinel,
-      type: 'send-embed-state'
-    }, '*');
-    this.setupEventListener('embed-state', callback);
-  };
-
-  observeIntersection(callback) {
-    console.log("observeIntersection");
-    this.ampWindow.postMessage({
-      sentinel: this.sentinel,
-      type: 'send-intersections'
-      }, '*');
-
-    this.setupEventListener('intersection', callback);
-  };
-
-  resizeAd(width, height){
-    this.ampWindow.postMessage({
-      sentinel: this.sentinel,
-      type: 'embed-size',
-      width: width,
-      height: height
-    }, '*');
-  };
 
   setupEventListener(message_type, callback){
     var context = this;
@@ -72,10 +38,44 @@ class ampContext{
 	} catch (e) {
           // JSON parsing failed. Ignore the message.
 	}
-
       }
     });
   };
+};
+
+ampContext.prototype.metadata = function(callback){
+  this.ampWindow.postMessage({
+    sentinel: this.sentinel,
+    type: 'send-embed-context'
+  }, '*');
+  this.setupEventListener('embed-context', callback);
+};
+
+ampContext.prototype.observePageVisibility = function(callback){
+  this.ampWindow.postMessage({
+    sentinel: this.sentinel,
+    type: 'send-embed-state'
+  }, '*');
+
+  this.setupEventListener('embed-state', callback);
+};
+
+ampContext.prototype.observeIntersection = function(callback) {
+  this.ampWindow.postMessage({
+    sentinel: this.sentinel,
+    type: 'send-intersections'
+  }, '*');
+
+  this.setupEventListener('intersection', callback);
+};
+
+ampContext.prototype.resizeAd = function(width, height){
+  this.ampWindow.postMessage({
+    sentinel: this.sentinel,
+    type: 'embed-size',
+    width: width,
+    height: height
+  }, '*');
 };
 
 
@@ -108,21 +108,7 @@ function dummyCallback(changes){
   console.log(changes);
 }
 
-/*ampContext.observePageVisibility = function(){
-  console.log("observePageVisibility");
-  this.ampWindow.postMessage({
-      sentinel: this.sentinel,
-      type: 'send-embed-state'
-    }, '*');
-  this.setupEventListener();
-};
-
-ampContext.requestResize = function(){
-  console.log("requestResize");
-};*/
-
-
-
-
-var aC = new ampContext();
+if (!window.context){
+  window.context = new ampContext();
+}
 window.dispatchEvent(windowContextCreated);
