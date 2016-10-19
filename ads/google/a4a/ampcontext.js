@@ -1,9 +1,8 @@
 var windowContextCreated = new Event('windowContextCreated');
 
 class ampContext{
-
   constructor() {
-    this.listening = false;
+    this.createdEventListener = false;
 
     // Map message_type keys to boolean whether we should be listening to
     // that type of message
@@ -26,13 +25,48 @@ class ampContext{
       }
       this.ampWindow = this.ancestors[this.depth];
     }
+    this.setupMetadata();
   }
 
+  /**
+   *  Request all of the metadata attributes for context and add them to
+   *  the class.
+   */
+  setupMetadata(){
+    this.ampWindow.postMessage({
+      sentinel: this.sentinel,
+      type: 'send-embed-context'
+    }, '*');
+    var windowContext = this;
+    return this.setupEventListener('embed-context', function(metadata){
+      console.log(metadata);
+      windowContext.location = metadata.location;
+      windowContext.canonicalUrl = metadata.canonicalUrl;
+      windowContext.clientId = metadata.clientId;
+      windowContext.pageViewId = metadata.pageViewId;
+      windowContext.sentinel = metadata.sentinel;
+      windowContext.startTime = metadata.startTime;
+      windowContext.referrer = metadata.referrer;
+    });
+  }
+
+  /**
+   * Sets up event listener for post messages of the desired type.
+   *   The actual implementation only uses a single event listener for all of
+   *   the different messages, and simply diverts the message to be handled
+   *   by different callbacks.
+   * @param {string} message_type The type of the message that we want to
+   *    listen for
+   * @param {function} callback Function to call when message with type of
+   *    message_type is received
+   * @return {function} A function which when called stops the listening for
+   *    the given message_type
+   */
   setupEventListener(message_type, callback){
     this.listenFor[message_type] = true;
     this.callbackFor[message_type] = callback;
-    if (!this.listening){
-      this.listening = true;
+    if (!this.createdEventListener){
+      this.createdEventListener = true;
       var context = this;
       window.addEventListener('message', function(message) {
 	// Does it look a message from AMP?
@@ -97,36 +131,6 @@ ampContext.prototype.resizeAd = function(width, height){
     height: height
   }, '*');
 };
-
-
-function intersectionCallback(payload){
-  changes = payload.changes;
-  // Step 4: Do something with the intersection updates!
-  // Code below is simply an example.
-  var latestChange = changes[changes.length - 1];
-
-  // Amp-ad width and height.
-  var w = latestChange.boundingClientRect.width;
-  var h = latestChange.boundingClientRect.height;
-
-  // Visible width and height.
-  var vw = latestChange.intersectionRect.width;
-  var vh = latestChange.intersectionRect.height;
-
-  // Position in the viewport.
-  var vx = latestChange.boundingClientRect.x;
-  var vy = latestChange.boundingClientRect.y;
-
-  // Viewable percentage.
-  var viewablePerc = (vw * vh) / (w * h) * 100;
-
-  console.log(viewablePerc, w, h, vw, vh, vx, vy);
-
-}
-
-function dummyCallback(changes){
-  console.log(changes);
-}
 
 if (!window.context){
   window.context = new ampContext();
