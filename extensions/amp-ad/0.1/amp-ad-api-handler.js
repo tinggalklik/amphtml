@@ -95,6 +95,15 @@ export class AmpAdApiHandler {
           this.element_.creativeId = info.data.id;
         });
 
+
+    console.log("Making listener");
+    listenFor(this.iframe_, 'send-embed-context',
+	      (data, source, origin) => {
+		console.log("Trying to send");
+		this.sendEmbedContext_(source, origin, this.iframe_._context)
+	      },
+	      this.is3p_, this.is3p_);
+
     // Install iframe resize API.
     this.unlisteners_.push(listenFor(this.iframe_, 'embed-size',
         (data, source, origin) => {
@@ -259,6 +268,28 @@ export class AmpAdApiHandler {
       inViewport,
       pageHidden: !this.viewer_.isVisible(),
     });
+  }
+
+  /**
+   * @param {!Window} win
+   * @param {string} origin
+   * @param {!Object} context
+   * @private
+   */
+  sendEmbedContext_(win, origin, context) {
+    // Note that we explicitly include only selected properties from the
+    // context object. This is to ensure that we don't inadvertently expose
+    // more API surface than we intend to and end up with somebody depending
+    // on it.
+    console.log("Sending embed context");
+    postMessageToWindows(this.iframe_, [{win, origin}], 'embed-context', {
+      location: context.location,
+      referrer: context.referrer,
+      canonicalUrl: context.canonicalUrl,
+      pageViewId: context.pageViewId,
+      clientId: context.clientId,
+      startTime: context.startTime,
+    }, this.is3p_);
   }
 
   /** @override  */

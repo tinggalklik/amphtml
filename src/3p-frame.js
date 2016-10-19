@@ -134,6 +134,7 @@ export function getIframe(parentWindow, parentElement, opt_type, opt_context) {
   };
   iframe.setAttribute(
       'data-amp-3p-sentinel', attributes._context.amp3pSentinel);
+  iframe._context = attributes._context;
   return iframe;
 }
 
