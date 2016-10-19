@@ -39,7 +39,6 @@ class ampContext{
     }, '*');
     var windowContext = this;
     return this.setupEventListener('embed-context', function(metadata){
-      console.log(metadata);
       windowContext.location = metadata.location;
       windowContext.canonicalUrl = metadata.canonicalUrl;
       windowContext.clientId = metadata.clientId;
