@@ -122,7 +122,7 @@ ampContext.prototype.observeIntersection = function(callback) {
   return this.setupEventListener('intersection', callback);
 };
 
-ampContext.prototype.resizeAd = function(width, height){
+ampContext.prototype.resizeAd = function(height, width){
   this.ampWindow.postMessage({
     sentinel: this.sentinel,
     type: 'embed-size',
