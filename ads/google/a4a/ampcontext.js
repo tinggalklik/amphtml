@@ -1,5 +1,6 @@
 import '../../../3p/polyfills';
 import {listen} from '../../../src/event-helper';
+<<<<<<< HEAD
 import {user} from '../../../src/log';
 
 
