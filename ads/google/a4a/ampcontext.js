@@ -1,5 +1,6 @@
 import '../../../3p/polyfills';
 import {listen} from '../../../src/event-helper';
+import {user} from '../../../src/log';
 
 
 window.context = window.context || (function() {
@@ -18,7 +19,6 @@ window.context = window.context || (function() {
   const windowContextCreated = new Event('windowContextCreated');
 
   class AmpContext {
-    // Make MessageType string enum
     constructor() {
       /** Map messageType keys to callback functions for when we receive
        *  that message
@@ -54,7 +54,7 @@ window.context = window.context || (function() {
         }
         this.ampWindow = this.ancestors[this.depth];
       } else {
-        // I'm broken?  Send ping?
+        user().error('Hash does not match amp3pSentinel format');
       }
       this.setupEventListener_();
       this.setupMetadata_();
