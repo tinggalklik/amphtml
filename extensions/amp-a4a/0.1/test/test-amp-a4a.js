@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import {stringToArrayBuffer, isStyleVisible} from './utils';
 import {AmpA4A, RENDERING_TYPE_HEADER} from '../amp-a4a';
 import {Xhr} from '../../../../src/service/xhr-impl';
 import {Viewer} from '../../../../src/service/viewer-impl';
@@ -30,6 +31,7 @@ import {data as testFragments} from './testdata/test_fragments';
 import {data as expectations} from './testdata/expectations';
 import {installDocService} from '../../../../src/service/ampdoc-impl';
 import {a4aRegistry} from '../../../../ads/_a4a-config';
+import {resetScheduledElementForTesting, upgradeOrRegisterElement} from '../../../../src/custom-element';
 import '../../../../extensions/amp-ad/0.1/amp-ad-xorigin-iframe-handler';
 import * as sinon from 'sinon';
 
@@ -105,11 +107,8 @@ describe('amp-a4a', () => {
 
   afterEach(() => {
     sandbox.restore();
+    resetScheduledElementForTesting(window, 'amp-a4a');
   });
-
-  function stringToArrayBuffer(str) {
-    return new TextEncoder('utf-8').encode(str);
-  }
 
   function createA4aElement(doc) {
     const element = doc.createElement('amp-a4a');
@@ -119,16 +118,6 @@ describe('amp-a4a', () => {
     };
     doc.body.appendChild(element);
     return element;
-  }
-
-  /**
-   *
-   * @param {!Window} win
-   * @param {!Element} element
-   */
-  function isStyleVisible(win, element) {
-    return win.getComputedStyle(element).getPropertyValue('visibility') ==
-        'visible';
   }
 
   describe('ads are visible', () => {
@@ -203,41 +192,6 @@ describe('amp-a4a', () => {
   });
 
   describe('#renderViaSafeFrame', () => {
-    // This is supposed to be an end-to-end test, but there seems to be an
-    // AMP initialization or upgrade issue somewhere, so the
-    // fixture.addElement() step fails with a 'element.build does not exist'
-    // error.  Skip this until we sort out how to properly do an E2E.
-    it.skip('should render a single AMP ad in a friendly iframe', () => {
-      xhrMock.withArgs('https://test.location.org/ad/012345?args', {
-        mode: 'cors',
-        method: 'GET',
-        credentials: 'include',
-        requireAmpResponseSourceOrigin: true,
-      }).onFirstCall().returns(Promise.resolve(mockResponse));
-      return createAdTestingIframePromise().then(fixture => {
-        const doc = fixture.doc;
-        a4aRegistry['mock'] = () => {return true;};
-        // const extensionsMock = sandbox.mock(extensionsFor(fixture.win));
-        // extensionsMock.expects('loadElementClass')
-        //     .withExactArgs('amp-ad-network-mock-impl')
-        //     .returns(Promise.resolve(MockA4AImpl))
-        //     .once();
-        const ampAdElement = doc.createElement('amp-a4a');
-        ampAdElement.setAttribute('width', 200);
-        ampAdElement.setAttribute('height', 50);
-        ampAdElement.setAttribute('type', 'mock');
-        // const ampAd = new MockA4AImpl(ampAdElement);
-        return fixture.addElement(ampAdElement);
-        // return ampAd.upgradeCallback().then(baseElement => {
-        //   extensionsMock.verify();
-        //   expect(ampAdElement.getAttribute('data-a4a-upgrade-type')).to.equal(
-        //       'amp-ad-network-mock-impl');
-        //   return fixture.addElement(ampAdElement).then(element => {
-        //     expect(element).to.not.be.null;
-        //   });
-        // });
-      });
-    });
 
     it('should attach a SafeFrame when header is set', () => {
       // Make sure there's no signature, so that we go down the 3p iframe path.
