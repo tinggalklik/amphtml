@@ -15,6 +15,10 @@
  */
 
 import {AmpAdNetworkAdsenseImpl} from '../amp-ad-network-adsense-impl';
+import {AmpAdUIHandler} from '../../../amp-ad/0.1/amp-ad-ui'; // eslint-disable-line no-unused-vars
+import {
+  AmpAdXOriginIframeHandler,
+} from '../../../amp-ad/0.1/amp-ad-xorigin-iframe-handler'; // eslint-disable-line no-unused-vars
 import {base64UrlDecodeToBytes} from '../../../../src/utils/base64';
 import * as sinon from 'sinon';
 
@@ -84,6 +88,12 @@ describe('amp-ad-network-adsense-impl', () => {
           },
         })).to.eventually.deep.equal(
             {creative, signature: base64UrlDecodeToBytes('AQAB')});
+    });
+  });
+
+  describe('#getAdUrl', () => {
+    it('should return a good URL', () => {
+      expect(adsenseImpl.getAdUrl()).to.equal('???');
     });
   });
 });
