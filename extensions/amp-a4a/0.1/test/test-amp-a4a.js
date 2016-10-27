@@ -18,7 +18,7 @@ import {
   stringToArrayBuffer,
   MockA4AImpl,
   TEST_URL,
-  SIGNATURE_HEADER
+  SIGNATURE_HEADER,
 } from './utils';
 import {AmpA4A, RENDERING_TYPE_HEADER} from '../amp-a4a';
 import {Xhr} from '../../../../src/service/xhr-impl';
@@ -35,7 +35,7 @@ import {data as testFragments} from './testdata/test_fragments';
 import {data as expectations} from './testdata/expectations';
 import {installDocService} from '../../../../src/service/ampdoc-impl';
 import {base64UrlDecodeToBytes} from '../../../../src/utils/base64';
-import {resetScheduledElementForTesting, upgradeOrRegisterElement} from '../../../../src/custom-element';
+import {resetScheduledElementForTesting} from '../../../../src/custom-element';
 import '../../../../extensions/amp-ad/0.1/amp-ad-xorigin-iframe-handler';
 import * as sinon from 'sinon';
 
